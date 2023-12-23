@@ -1,6 +1,7 @@
 import subprocess
 import os
 import time
+import threading
 
 def generate_file_list(remote_source_directory, local_target_directory):
     """
@@ -38,17 +39,17 @@ def write_chunks_to_files(chunks, chunk_dir):
         chunk_file_paths.append(chunk_file_path)
     return chunk_file_paths
 
-def copy_files(chunk_file, remote_source_directory, local_target_directory):
+def copy_files_threaded(chunk_file, remote_source_directory, local_target_directory):
     """
-    Copies files listed in a chunk file using rsync.
+    Thread function to copy files listed in a chunk file using rsync.
     """
-    rsync_command = ["rsync", "-av", "--files-from=" + chunk_file, remote_source_directory, local_target_directory]
     try:
-        subprocess.run(rsync_command, check=True, stderr=subprocess.PIPE)
+        subprocess.run(["rsync", "-av", "--files-from=" + chunk_file, remote_source_directory, local_target_directory], check=True, stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
         print(f"Rsync process failed: {e.stderr.decode().strip()}")
-
-
+    finally:
+        if os.path.exists(chunk_file):
+            os.remove(chunk_file)
 
 def main(remote_source_directory, local_target_directory, chunk_directory):
     file_list = generate_file_list(remote_source_directory, local_target_directory)
@@ -58,10 +59,19 @@ def main(remote_source_directory, local_target_directory, chunk_directory):
 
     chunk_files = write_chunks_to_files(split_file_list(file_list), chunk_directory)
 
+    threads = []
     for chunk_file in chunk_files:
-        copy_files(chunk_file, remote_source_directory, local_target_directory)
-        while is_rsync_running():
-            time.sleep(1)
+        thread = threading.Thread(target=copy_files_threaded, args=(chunk_file, remote_source_directory, local_target_directory))
+        threads.append(thread)
+        thread.start()
+
+        if len(threads) >= 5:  # Thread count
+            threads[0].join()  
+            threads.pop(0)  
+
+    # Wait for all threads to complete
+    for thread in threads:
+        thread.join()
 
 def is_rsync_running():
     """
@@ -74,7 +84,7 @@ def is_rsync_running():
         return False
 
 if __name__ == "__main__":
-    REMOTE_SOURCE_DIRECTORY = 'levi@nginx:/home/levi/data/'  
+    REMOTE_SOURCE_DIRECTORY = 'root@node1:/mnt/pve/HDD1/dump/'
     LOCAL_TARGET_DIRECTORY = '/Users/levi/Documents/tmp/'  
-    CHUNK_DIRECTORY = '/Users/levi/Documents/chunk/'  
+    CHUNK_DIRECTORY = '/Users/levi/Documents/chunk/'   
     main(REMOTE_SOURCE_DIRECTORY, LOCAL_TARGET_DIRECTORY, CHUNK_DIRECTORY)
