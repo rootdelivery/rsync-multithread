@@ -52,4 +52,7 @@ def main(remote_path, local_path, dry_run_output):
             thread.join()
 
 if __name__ == "__main__":
-    main('root@node1:/mnt/pve/HDD1/dump/', '/Users/levi/Documents/tmp/', '/Users/levi/Documents/chunk/output.txt')
+    remote_path = 'root@node1:/mnt/pve/HDD1/dump/'
+    local_path = '/Users/levi/Documents/tmp/'
+    dry_run_output = '/Users/levi/Documents/chunk/output.txt'
+    main(remote_path, local_path, dry_run_output)
