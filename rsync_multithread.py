@@ -18,7 +18,7 @@ def split_file_list(file_list_path, num_threads, remote_path):
     with open(file_list_path, 'r') as file:
         lines = file.readlines()
 
-    file_paths = [line.strip() for line in lines if line.strip() and not line.startswith('./') and not line.startswith('sending') and not line.startswith('total size') and not line.startswith('receiving')]
+    file_paths = [line.strip() for line in lines if line.strip() and not line.startswith('./') and not line.startswith('sending') and not line.startswith('total size') and not line.startswith('receiving') and not line.startswith('sent') ]
 
     if not file_paths:
         print("No files to transfer. Check the remote directory and rsync settings.")
