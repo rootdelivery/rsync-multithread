@@ -3,9 +3,15 @@ import threading
 import os
 import re
 
-def execute_rsync(file_list, local_path):
+def execute_rsync(file_list, local_path, remote_path):
     for file in file_list:
-        rsync_command = f"rsync -avz {file} {local_path}"
+        # Create local directory structure based on the file path
+        local_file_path = os.path.join(local_path, os.path.relpath(file, remote_path))
+        local_dir = os.path.dirname(local_file_path)
+        if not os.path.exists(local_dir):
+            os.makedirs(local_dir)
+        
+        rsync_command = f"rsync -avz {file} {local_file_path}"
         subprocess.run(rsync_command, shell=True)
 
 def split_file_list(file_list_path, num_threads, remote_path):
@@ -44,7 +50,7 @@ def main(remote_path, local_path, dry_run_output):
             with open(f"thread_{i}_files.txt", 'r') as f:
                 file_list = [line.strip() for line in f.readlines() if line.strip()]
             if file_list:
-                thread = threading.Thread(target=execute_rsync, args=(file_list, local_path))
+                thread = threading.Thread(target=execute_rsync, args=(file_list, local_path, remote_path))
                 threads.append(thread)
                 thread.start()
 
@@ -53,6 +59,6 @@ def main(remote_path, local_path, dry_run_output):
 
 if __name__ == "__main__":
     remote_path = 'root@node1:/mnt/pve/HDD1/dump/'
-    local_path = '/Users/levi/Documents/tmp/'
-    dry_run_output = '/Users/levi/Documents/chunk/output.txt'
+    local_path = '/home/Data/'
+    dry_run_output = '/home/victor/Documents/output.txt'
     main(remote_path, local_path, dry_run_output)
