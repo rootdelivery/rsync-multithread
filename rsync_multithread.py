@@ -2,16 +2,20 @@ import subprocess
 import threading
 import os
 import re
+import shlex
+
 
 def execute_rsync(file_list, local_path, remote_path):
     for file in file_list:
-        # Create local directory structure based on the file path
         local_file_path = os.path.join(local_path, os.path.relpath(file, remote_path))
         local_dir = os.path.dirname(local_file_path)
         if not os.path.exists(local_dir):
             os.makedirs(local_dir)
-        
-        rsync_command = f"rsync -avz {file} {local_file_path}"
+
+        safe_file = shlex.quote(file)
+        safe_local_file_path = shlex.quote(local_file_path)
+
+        rsync_command = f"rsync -avz {safe_file} {safe_local_file_path}"
         subprocess.run(rsync_command, shell=True)
 
 def split_file_list(file_list_path, num_threads, remote_path):
